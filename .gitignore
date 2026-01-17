@@ -1,0 +1,30 @@
+# --- Go ---
+/bin/
+/dist/
+*.exe
+*.test
+vendor/
+
+# --- .NET ---
+bin/
+obj/
+.vscode/
+.idea/
+*.user
+*.pdb
+
+# --- Terraform ---
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+.terraform.lock.hcl
+
+# --- AWS / Secrets ---
+.aws/
+secrets.json
+.env
+
+# --- OS ---
+.DS_Store
+Thumbs.db

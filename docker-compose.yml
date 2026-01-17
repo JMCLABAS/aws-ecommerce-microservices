@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  # Servicio de Catálogo (Go)
+  catalog-api:
+    build:
+      context: ./services/catalog-api
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+
+  # Servicio de Pedidos (.NET)
+  orders-api:
+    build:
+      context: ./services/orders-api
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8080" # Mapeamos el 8080 del contenedor al 5000 de tu PC
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
