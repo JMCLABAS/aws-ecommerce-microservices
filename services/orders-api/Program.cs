@@ -1,23 +1,28 @@
+using OrdersApi.Controllers;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// --- 1. Configuración de Servicios (Dependency Injection) ---
 
+// Añadimos soporte para Controladores
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+
+// Añadimos Swagger/OpenAPI (Estilo .NET 8)
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+// --- 2. Configuración del Pipeline HTTP ---
 
-app.UseHttpsRedirection();
+// Configuramos Swagger para poder probar la API visualmente
+// (Permitimos que se vea incluso fuera de entorno 'Development' para que lo veas en Docker)
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseAuthorization();
 
+// Mapeamos los controladores
 app.MapControllers();
 
 app.Run();
