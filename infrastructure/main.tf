@@ -5,6 +5,14 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+
+  backend "s3" {
+    bucket = "terraform-state-ecommerce-pepe" # <--- ¡PON TU NOMBRE DE BUCKET AQUÍ!
+    key    = "global/s3/terraform.tfstate"
+    region = "eu-west-1"
+  }
+
 }
 
 # Aquí le decimos a Terraform que use tus credenciales de AWS CLI automáticamente
