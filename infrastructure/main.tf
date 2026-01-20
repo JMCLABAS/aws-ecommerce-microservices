@@ -344,12 +344,11 @@ resource "aws_s3_bucket_policy" "web_policy" {
   })
 }
 
-# 5. Subir el HTML directamente (Con UTF-8 y DynamoDB añadido)
 resource "aws_s3_object" "index_file" {
   bucket       = aws_s3_bucket.web_bucket.id
   key          = "index.html"
-  content_type = "text/html; charset=utf-8" # <--- ¡ESTO ARREGLA LAS TILDES!
-  
+  content_type = "text/html; charset=utf-8"
+
   content = <<EOF
 <!DOCTYPE html>
 <html lang="es">
@@ -357,44 +356,60 @@ resource "aws_s3_object" "index_file" {
     <meta charset="UTF-8">
     <title>E-commerce Infrastructure</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 50px; background-color: #f0f2f5; color: #333; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; padding: 50px; background-color: #f8f9fa; }
         .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
-        h1 { color: #2c3e50; margin-bottom: 10px; }
-        .badge { background-color: #e1f5fe; color: #0288d1; padding: 5px 10px; border-radius: 15px; font-size: 0.8em; font-weight: bold; }
-        .status { color: #27ae60; font-weight: bold; font-size: 1.2em; }
-        .resource-list { text-align: left; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
-        .item { margin: 10px 0; display: flex; align-items: center; }
-        .icon { margin-right: 10px; font-size: 1.2em; }
-        .footer { margin-top: 40px; font-size: 0.8em; color: #7f8c8d; }
+        button { background-color: #007bff; color: white; border: none; padding: 15px 30px; border-radius: 50px; font-size: 1.2em; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,123,255,0.3); }
+        button:hover { background-color: #0056b3; transform: translateY(-2px); }
+        .status { margin-top: 20px; font-weight: bold; color: #28a745; min-height: 24px;}
+        .resource-list { text-align: left; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; color: #6c757d; }
     </style>
+    <script>
+        async function comprar() {
+            const btn = document.getElementById('btnComprar');
+            const status = document.getElementById('statusMsg');
+            
+            btn.disabled = true;
+            btn.innerText = "Procesando...";
+            status.innerText = "";
+
+            try {
+                // Terraform inyecta aquí la URL de la Lambda automáticamente:
+                const response = await fetch("${aws_lambda_function_url.lambda_url.function_url}", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const data = await response.json();
+                status.innerText = "✅ " + data.message + " (ID: " + data.id + ")";
+                status.style.color = "#28a745";
+            } catch (error) {
+                status.innerText = "❌ Error al conectar con el Backend";
+                status.style.color = "red";
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Simular Compra 🛒";
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="container">
-        <span class="badge">AWS INFRASTRUCTURE</span>
-        <h1>🚀 Sistema E-commerce Desplegado</h1>
-        <p>Pipeline de CI/CD ejecutado correctamente desde <strong>GitHub Actions</strong>.</p>
+        <h1>Tienda Serverless Demo</h1>
+        <p>Prueba de concepto de arquitectura de 3 capas.</p>
         
-        <div style="margin: 30px 0;">
-            Estado del sistema: <span class="status">OPERATIVO ✅</span>
+        <div style="margin: 40px 0;">
+            <button id="btnComprar" onclick="comprar()">Simular Compra 🛒</button>
+            <div id="statusMsg" class="status"></div>
         </div>
 
         <div class="resource-list">
-            <div class="item">
-                <span class="icon">🌐</span> 
-                <div><strong>Frontend:</strong> AWS S3 Static Website</div>
-            </div>
-            <div class="item">
-                <span class="icon">📨</span> 
-                <div><strong>Backend:</strong> AWS SQS (Cola de Pedidos)</div>
-            </div>
-            <div class="item">
-                <span class="icon">💾</span> 
-                <div><strong>Database:</strong> AWS DynamoDB (Inventario)</div>
-            </div>
-        </div>
-
-        <div class="footer">
-            Infraestructura inmutable gestionada con Terraform v1.10
+            <p><strong>Arquitectura Activa:</strong></p>
+            <ul>
+                <li>🌐 Frontend (S3) -> Tu navegador</li>
+                <li>⚡ API (Lambda Function URL) -> Procesa la lógica</li>
+                <li>💾 Database (DynamoDB) -> Guarda el pedido</li>
+            </ul>
         </div>
     </div>
 </body>
@@ -424,3 +439,80 @@ resource "aws_dynamodb_table" "inventory_table" {
     Name        = "InventoryTable"
   }
 }
+
+# --- INICIO BLOQUE LAMBDA ---
+
+# 1. Empaquetar el archivo Python para subirlo
+data "archive_file" "lambda_zip" {
+  type        = "zip"
+  source_file = "lambda_function.py"
+  output_path = "lambda_function.zip"
+}
+
+# 2. Crear un Rol de IAM para que la Lambda pueda actuar
+resource "aws_iam_role" "lambda_role" {
+  name = "ecommerce_lambda_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+    }]
+  })
+}
+
+# 3. Dar permiso a la Lambda para escribir en DynamoDB y guardar logs
+resource "aws_iam_role_policy" "lambda_policy" {
+  name = "ecommerce_lambda_policy"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = ["dynamodb:PutItem", "dynamodb:Scan"],
+        Resource = aws_dynamodb_table.inventory_table.arn
+      },
+      {
+        Effect = "Allow",
+        Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+        Resource = "arn:aws:logs:*:*:*"
+      }
+    ]
+  })
+}
+
+# 4. Crear la Función Lambda
+resource "aws_lambda_function" "backend_lambda" {
+  filename         = "lambda_function.zip"
+  function_name    = "ecommerce-backend-function"
+  role             = aws_iam_role.lambda_role.arn
+  handler          = "lambda_function.lambda_handler"
+  runtime          = "python3.9"
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  
+  environment {
+    variables = {
+      TABLE_NAME = aws_dynamodb_table.inventory_table.name
+    }
+  }
+}
+
+# 5. Crear una URL pública para invocar la Lambda (Function URL)
+resource "aws_lambda_function_url" "lambda_url" {
+  function_name      = aws_lambda_function.backend_lambda.function_name
+  authorization_type = "NONE" # Pública (para el ejemplo)
+  
+  cors {
+    allow_credentials = true
+    allow_origins     = ["*"]
+    allow_methods     = ["*"]
+    allow_headers     = ["date", "keep-alive"]
+    expose_headers    = ["keep-alive", "date"]
+    max_age           = 86400
+  }
+}
+# --- FIN BLOQUE LAMBDA ---
