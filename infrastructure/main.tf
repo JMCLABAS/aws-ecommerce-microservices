@@ -294,3 +294,67 @@ resource "aws_sqs_queue" "ecommerce_orders" { # Nombre interno de Terraform camb
     Project     = "E-commerce Core"
   }
 }
+
+
+# 1. Crear el Bucket para la web
+resource "aws_s3_bucket" "web_bucket" {
+  bucket = "mi-web-ecommerce-portfolio-jmclabas" 
+  
+  tags = {
+    Name        = "Static Website Bucket"
+    Environment = "Production"
+  }
+}
+
+# 2. Configurar el bucket para que funcione como sitio web
+resource "aws_s3_bucket_website_configuration" "web_config" {
+  bucket = aws_s3_bucket.web_bucket.id
+
+  index_document {
+    suffix = "index.html"
+  }
+}
+
+# 3. Desbloquear el acceso público (necesario para ver la web)
+resource "aws_s3_bucket_public_access_block" "web_public_access" {
+  bucket = aws_s3_bucket.web_bucket.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+# 4. Política de seguridad: Permitir que CUALQUIERA lea los archivos (Read Only)
+resource "aws_s3_bucket_policy" "web_policy" {
+  bucket = aws_s3_bucket.web_bucket.id
+  depends_on = [aws_s3_bucket_public_access_block.web_public_access]
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.web_bucket.arn}/*"
+      },
+    ]
+  })
+}
+
+# 5. Subir automáticamente el archivo index.html
+resource "aws_s3_object" "index_file" {
+  bucket       = aws_s3_bucket.web_bucket.id
+  key          = "index.html"
+  source       = "index.html"     # Ruta local del archivo
+  content_type = "text/html"      # Importante para que el navegador lo renderice
+  etag         = filemd5("index.html") # Detecta cambios en el archivo
+}
+
+# 6. OUTPUT: Para que GitHub nos diga la URL al terminar
+output "website_url" {
+  value = aws_s3_bucket_website_configuration.web_config.website_endpoint
+  description = "La URL de mi página web estática"
+}
