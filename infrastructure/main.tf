@@ -518,7 +518,7 @@ resource "aws_lambda_function_url" "lambda_url" {
 
 # 6. Permiso explícito para que CUALQUIERA pueda invocar la URL
 resource "aws_lambda_permission" "allow_public_access" {
-  statement_id           = "FunctionURLAllowPublicAccess"
+  statement_id           = "FunctionURLAllowPublicAccess_v2"
   action                 = "lambda:InvokeFunctionUrl"
   function_name          = aws_lambda_function.backend_lambda.function_name
   principal              = "*"
