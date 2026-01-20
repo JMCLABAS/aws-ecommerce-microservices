@@ -515,4 +515,13 @@ resource "aws_lambda_function_url" "lambda_url" {
     max_age           = 86400
   }
 }
+
+# 6. Permiso explícito para que CUALQUIERA pueda invocar la URL
+resource "aws_lambda_permission" "allow_public_access" {
+  statement_id           = "FunctionURLAllowPublicAccess"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = aws_lambda_function.backend_lambda.function_name
+  principal              = "*"
+  function_url_auth_type = "NONE"
+}
 # --- FIN BLOQUE LAMBDA ---
