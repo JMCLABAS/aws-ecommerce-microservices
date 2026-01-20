@@ -406,9 +406,9 @@ resource "aws_s3_object" "index_file" {
         <div class="resource-list">
             <p><strong>Arquitectura Activa:</strong></p>
             <ul>
-                <li>🌐 Frontend (S3) -> Tu navegador</li>
-                <li>⚡ API (Lambda Function URL) -> Procesa la lógica</li>
-                <li>💾 Database (DynamoDB) -> Guarda el pedido</li>
+                <li>🌐 Frontend (S3)</li>
+                <li>⚡ API (Lambda Function URL)</li>
+                <li>💾 Database (DynamoDB)</li>
             </ul>
         </div>
     </div>
@@ -504,13 +504,13 @@ resource "aws_lambda_function" "backend_lambda" {
 # 5. Crear una URL pública para invocar la Lambda (Function URL)
 resource "aws_lambda_function_url" "lambda_url" {
   function_name      = aws_lambda_function.backend_lambda.function_name
-  authorization_type = "NONE" # Pública (para el ejemplo)
+  authorization_type = "NONE"
   
   cors {
     allow_credentials = true
     allow_origins     = ["*"]
     allow_methods     = ["*"]
-    allow_headers     = ["date", "keep-alive"]
+    allow_headers     = ["date", "keep-alive", "content-type"]
     expose_headers    = ["keep-alive", "date"]
     max_age           = 86400
   }
