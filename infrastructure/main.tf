@@ -344,35 +344,58 @@ resource "aws_s3_bucket_policy" "web_policy" {
   })
 }
 
-# 5. Subir automáticamente el archivo index.html
-# 5. Subir el HTML directamente (Sin depender de archivos externos)
+# 5. Subir el HTML directamente (Con UTF-8 y DynamoDB añadido)
 resource "aws_s3_object" "index_file" {
   bucket       = aws_s3_bucket.web_bucket.id
   key          = "index.html"
-  content_type = "text/html; charset=utf-8"
+  content_type = "text/html; charset=utf-8" # <--- ¡ESTO ARREGLA LAS TILDES!
   
-  # Aquí pegamos el HTML directamente
   content = <<EOF
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta charset="UTF-8">
     <title>E-commerce Infrastructure</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; background-color: #f0f2f5; }
-        .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
-        h1 { color: #2c3e50; }
-        .status { color: #27ae60; font-weight: bold; }
-        .footer { margin-top: 20px; font-size: 0.8em; color: #7f8c8d; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 50px; background-color: #f0f2f5; color: #333; }
+        .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        h1 { color: #2c3e50; margin-bottom: 10px; }
+        .badge { background-color: #e1f5fe; color: #0288d1; padding: 5px 10px; border-radius: 15px; font-size: 0.8em; font-weight: bold; }
+        .status { color: #27ae60; font-weight: bold; font-size: 1.2em; }
+        .resource-list { text-align: left; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+        .item { margin: 10px 0; display: flex; align-items: center; }
+        .icon { margin-right: 10px; font-size: 1.2em; }
+        .footer { margin-top: 40px; font-size: 0.8em; color: #7f8c8d; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Infraestructura Desplegada</h1>
-        <p>Si estás viendo esto, el pipeline de <strong>Terraform + GitHub Actions</strong> ha funcionado correctamente.</p>
-        <p>Estado del sistema: <span class="status">OPERATIVO ✅</span></p>
-        <hr>
-        <p>Backend conectado: <strong>AWS SQS (Orders Queue)</strong></p>
-        <div class="footer">Desplegado automáticamente desde GitHub</div>
+        <span class="badge">AWS INFRASTRUCTURE</span>
+        <h1>🚀 Sistema E-commerce Desplegado</h1>
+        <p>Pipeline de CI/CD ejecutado correctamente desde <strong>GitHub Actions</strong>.</p>
+        
+        <div style="margin: 30px 0;">
+            Estado del sistema: <span class="status">OPERATIVO ✅</span>
+        </div>
+
+        <div class="resource-list">
+            <div class="item">
+                <span class="icon">🌐</span> 
+                <div><strong>Frontend:</strong> AWS S3 Static Website</div>
+            </div>
+            <div class="item">
+                <span class="icon">📨</span> 
+                <div><strong>Backend:</strong> AWS SQS (Cola de Pedidos)</div>
+            </div>
+            <div class="item">
+                <span class="icon">💾</span> 
+                <div><strong>Database:</strong> AWS DynamoDB (Inventario)</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Infraestructura inmutable gestionada con Terraform v1.10
+        </div>
     </div>
 </body>
 </html>
@@ -383,4 +406,21 @@ EOF
 output "website_url" {
   value = aws_s3_bucket_website_configuration.web_config.website_endpoint
   description = "La URL de mi página web estática"
+}
+
+# 7. Base de Datos DynamoDB para el Inventario
+resource "aws_dynamodb_table" "inventory_table" {
+  name           = "ecommerce-inventory-prod"
+  billing_mode   = "PAY_PER_REQUEST" # Serverless (solo pagas por uso, o sea, gratis ahora)
+  hash_key       = "ProductId"
+  
+  attribute {
+    name = "ProductId"
+    type = "S" # String
+  }
+
+  tags = {
+    Environment = "Production"
+    Name        = "InventoryTable"
+  }
 }
