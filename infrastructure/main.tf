@@ -349,7 +349,7 @@ resource "aws_s3_bucket_policy" "web_policy" {
 resource "aws_s3_object" "index_file" {
   bucket       = aws_s3_bucket.web_bucket.id
   key          = "index.html"
-  content_type = "text/html"
+  content_type = "text/html; charset=utf-8"
   
   # Aquí pegamos el HTML directamente
   content = <<EOF
