@@ -11,8 +11,8 @@ terraform {
   }
   
   backend "s3" {
-    bucket = "terraform-state-ecommerce-pepe" # Tu bucket de estado
-    key    = "terraform.tfstate"               # Guardamos el estado en la raíz
+    bucket = "terraform-state-ecommerce-pepe" 
+    key    = "global/s3/terraform.tfstate"    
     region = "eu-west-1"
   }
 }
