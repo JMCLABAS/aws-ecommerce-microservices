@@ -345,12 +345,38 @@ resource "aws_s3_bucket_policy" "web_policy" {
 }
 
 # 5. Subir automáticamente el archivo index.html
+# 5. Subir el HTML directamente (Sin depender de archivos externos)
 resource "aws_s3_object" "index_file" {
   bucket       = aws_s3_bucket.web_bucket.id
   key          = "index.html"
-  source       = "index.html"     # Ruta local del archivo
-  content_type = "text/html"      # Importante para que el navegador lo renderice
-  etag         = filemd5("index.html") # Detecta cambios en el archivo
+  content_type = "text/html"
+  
+  # Aquí pegamos el HTML directamente
+  content = <<EOF
+<!DOCTYPE html>
+<html>
+<head>
+    <title>E-commerce Infrastructure</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background-color: #f0f2f5; }
+        .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        h1 { color: #2c3e50; }
+        .status { color: #27ae60; font-weight: bold; }
+        .footer { margin-top: 20px; font-size: 0.8em; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Infraestructura Desplegada</h1>
+        <p>Si estás viendo esto, el pipeline de <strong>Terraform + GitHub Actions</strong> ha funcionado correctamente.</p>
+        <p>Estado del sistema: <span class="status">OPERATIVO ✅</span></p>
+        <hr>
+        <p>Backend conectado: <strong>AWS SQS (Orders Queue)</strong></p>
+        <div class="footer">Desplegado automáticamente desde GitHub</div>
+    </div>
+</body>
+</html>
+EOF
 }
 
 # 6. OUTPUT: Para que GitHub nos diga la URL al terminar
