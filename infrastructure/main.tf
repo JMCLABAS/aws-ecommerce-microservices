@@ -282,10 +282,15 @@ resource "aws_ecs_service" "orders_service" {
   }
 }
 
-resource "aws_sqs_queue" "cola_prueba" {
-  name                      = "mi-primera-cola-terraform"
-  delay_seconds             = 90
+resource "aws_sqs_queue" "ecommerce_orders" { # Nombre interno de Terraform cambiado
+  name                      = "ecommerce-orders-queue" # Nombre real en AWS cambiado
+  delay_seconds             = 0
   max_message_size          = 2048
   message_retention_seconds = 86400
   receive_wait_time_seconds = 10
+  
+  tags = {
+    Environment = "Production"
+    Project     = "E-commerce Core"
+  }
 }
