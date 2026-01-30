@@ -109,7 +109,7 @@ resource "aws_lambda_function_url" "lambda_url" {
 }
 
 resource "aws_lambda_permission" "allow_public_access" {
-  statement_id           = "AllowPublicAccess_FinalClean_v3" # <--- Fix del error 409
+  statement_id           = "AllowPublicAccess_FinalClean_v4" 
   action                 = "lambda:InvokeFunctionUrl"
   function_name          = aws_lambda_function.backend_lambda.function_name
   principal              = "*"
