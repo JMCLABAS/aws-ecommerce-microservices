@@ -1,74 +1,46 @@
-name: Deploy to AWS
+name: "Deploy Serverless E-commerce"
 
 on:
   push:
     branches:
-      - main # Se ejecuta cuando haces push a la rama main
+      - main
 
-env:
-  AWS_REGION: eu-west-1
-  ECR_CATALOG_REPO: catalog-api
-  ECR_ORDERS_REPO: orders-api
-  ECS_CLUSTER: ecommerce-cluster
-  CATALOG_SERVICE: catalog-api-service
-  ORDERS_SERVICE: orders-api-service
+permissions:
+  id-token: write # Necesario para conectarse a AWS de forma segura
+  contents: read
 
 jobs:
-  deploy:
-    name: Build & Deploy
+  terraform:
+    name: "Terraform Apply"
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
 
     steps:
-    # 1. Bajar el código
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    # 2. Loguearse en AWS (Usando tus secretos)
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # --- ¡IMPORTANTE! ---
+          # Asegúrate de que este ARN coincide con el que configuraste al principio
+          # Si no lo recuerdas, búscalo en AWS IAM -> Roles -> github-actions-role
+          role-to-assume: arn:aws:iam::380058194204:role/github-actions-role 
+          aws-region: eu-west-1
 
-    # 3. Instalar Terraform
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-    # 4. Terraform Init & Apply (Crea la infraestructura)
-    - name: Terraform Apply
-      working-directory: ./infrastructure
-      run: |
-        terraform init
-        terraform apply -auto-approve
+      - name: Terraform Init
+        run: terraform init
 
-    # 5. Login en Amazon ECR (Para poder subir imágenes)
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
+      - name: Terraform Validate
+        run: terraform validate
 
-    # 6. Build & Push CATALOG API (Go)
-    - name: Build & Push Catalog API
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: latest # En un entorno real usaríamos el git-sha
-      run: |
-        cd services/catalog-api
-        docker build -t $ECR_REGISTRY/$ECR_CATALOG_REPO:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_CATALOG_REPO:$IMAGE_TAG
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
 
-    # 7. Build & Push ORDERS API (.NET)
-    - name: Build & Push Orders API
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: latest
-      run: |
-        cd services/orders-api
-        docker build -t $ECR_REGISTRY/$ECR_ORDERS_REPO:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_ORDERS_REPO:$IMAGE_TAG
-
-    # 8. Forzar despliegue en ECS (Para que coja las nuevas imágenes)
-    - name: Force ECS Deployment
-      run: |
-        aws ecs update-service --cluster $ECS_CLUSTER --service $CATALOG_SERVICE --force-new-deployment
-        aws ecs update-service --cluster $ECS_CLUSTER --service $ORDERS_SERVICE --force-new-deployment
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
