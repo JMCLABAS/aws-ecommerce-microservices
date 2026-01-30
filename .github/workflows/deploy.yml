@@ -21,6 +21,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Debug Files (¿Donde esta main.tf?)
+        run: |
+          echo "La carpeta actual es:"
+          pwd
+          echo "Los archivos aqui son:"
+          ls -la
+
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
