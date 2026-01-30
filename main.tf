@@ -99,17 +99,17 @@ resource "aws_lambda_function_url" "lambda_url" {
   authorization_type = "NONE"
   
   cors {
-    allow_credentials = true
+    allow_credentials = false  # Importante: false cuando usamos "*" en orígenes
     allow_origins     = ["*"]
-    allow_methods     = ["*"]
-    allow_headers     = ["date", "keep-alive", "content-type"]
+    allow_methods     = ["POST", "GET", "OPTIONS"] # OPTIONS es vital para el navegador
+    allow_headers     = ["content-type", "keep-alive", "date"] # content-type es vital para JSON
     expose_headers    = ["keep-alive", "date"]
     max_age           = 86400
   }
 }
 
 resource "aws_lambda_permission" "allow_public_access" {
-  statement_id           = "AllowPublicAccess_FinalClean_v4" 
+  statement_id           = "AllowPublicAccess_FinalClean_v5" 
   action                 = "lambda:InvokeFunctionUrl"
   function_name          = aws_lambda_function.backend_lambda.function_name
   principal              = "*"
