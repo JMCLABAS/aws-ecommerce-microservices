@@ -40,10 +40,7 @@ def lambda_handler(event, context):
         return {
             'statusCode': 200,
             'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'content-type'
-            },
+                'Content-Type': 'application/json'},
             'body': json.dumps({
                 'message': f'¡Compraste {product_name}!', 
                 'id': order_id
@@ -55,9 +52,6 @@ def lambda_handler(event, context):
         return {
             'statusCode': 500,
             'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'content-type'
-            },
+                'Content-Type': 'application/json'},
             'body': json.dumps({'message': f'Error: {str(e)}'})
         }
