@@ -3,50 +3,61 @@ import boto3
 import uuid
 import os
 from datetime import datetime
-
-# Inicializamos el recurso fuera del handler para mejor rendimiento
-dynamodb = boto3.resource('dynamodb')
+from decimal import Decimal
 
 def lambda_handler(event, context):
     try:
-        # 1. Obtenemos el nombre de la tabla desde la variable de entorno (inyectada por Terraform)
-        # Esto evita errores si cambiamos el nombre de la tabla en el futuro.
+        # 1. Configurar DynamoDB
+        dynamodb = boto3.resource('dynamodb')
         table_name = os.environ.get('TABLE_NAME')
         table = dynamodb.Table(table_name)
         
-        # 2. Generamos datos del pedido
+        # 2. Leer los datos que vienen de la web
+        body = {}
+        if event.get('body'):
+            body = json.loads(event.get('body'))
+            
+        product_name = body.get('product_name', 'Producto Desconocido')
+        price = body.get('price', 0)
+        
+        # 3. Generar datos del pedido
         order_id = str(uuid.uuid4())
         timestamp = datetime.now().isoformat()
         
-        # 3. Guardamos en DynamoDB
+        # 4. Guardar en DynamoDB (Convertimos precio a Decimal)
         table.put_item(
             Item={
                 'ProductId': order_id,
-                'Tipo': 'Pedido Simulado',
+                'Tipo': 'Pedido Web',
+                'Producto': product_name,
+                'Precio': Decimal(str(price)),
                 'Fecha': timestamp,
-                'Estado': 'Procesado'
+                'Estado': 'Confirmado'
             }
         )
         
+        # 5. Responder
         return {
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'content-type'
             },
-            'body': json.dumps({'message': 'Pedido Exitoso', 'id': order_id})
+            'body': json.dumps({
+                'message': f'¡Compraste {product_name}!', 
+                'id': order_id
+            })
         }
         
     except Exception as e:
-        # Si algo falla, devolvemos el error exacto para verlo en la web
-        print(f"Error: {str(e)}")
+        print(f"ERROR: {str(e)}")
         return {
             'statusCode': 500,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'content-type'
             },
-            'body': json.dumps({'message': f'Error Interno: {str(e)}', 'id': 'ERROR'})
+            'body': json.dumps({'message': f'Error: {str(e)}'})
         }
