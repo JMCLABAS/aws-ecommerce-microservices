@@ -200,7 +200,7 @@ resource "aws_s3_object" "index_file" {
             <div class="card-body">
                 <h3>MacBook Pro Dev</h3>
                 <p>Perfecto para compilar tu código Terraform.</p>
-                <span class="price">$1,299</span>
+                <span class="price">1,299€</span>
                 <button onclick="comprar('MacBook Pro Dev', 1299)">Comprar Ahora</button>
             </div>
         </div>
@@ -209,7 +209,7 @@ resource "aws_s3_object" "index_file" {
             <div class="card-body">
                 <h3>Sony WH-1000XM5</h3>
                 <p>Cancelación de ruido para concentrarte.</p>
-                <span class="price">$349</span>
+                <span class="price">349€</span>
                 <button onclick="comprar('Auriculares Sony', 349)">Comprar Ahora</button>
             </div>
         </div>
@@ -218,14 +218,15 @@ resource "aws_s3_object" "index_file" {
             <div class="card-body">
                 <h3>Auriculares Cloud</h3>
                 <p>Escucha tus logs con claridad cristalina.</p>
-                <span class="price">$89</span>
+                <span class="price">89€</span>
                 <button onclick="comprar('Auriculares Cloud', 89)">Comprar Ahora</button>
             </div>
         </div>
     </div>
 
     <div class="footer">
-        <p>⚡ Powered by AWS Lambda (Python 3.12) & GitHub Actions</p>
+        <p>Powered by AWS Lambda (Python 3.12) & GitHub Actions</p>
+        <p>By: Jose María Clavijo Basáñez</p>
     </div>
 
     <div id="toast" class="toast">Pedido realizado...</div>

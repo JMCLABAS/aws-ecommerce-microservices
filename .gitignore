@@ -15,7 +15,7 @@ obj/
 
 # --- Terraform ---
 .terraform/
-*.tfstate
+*.tfstatexº
 *.tfstate.backup
 *.tfvars
 .terraform.lock.hcl
