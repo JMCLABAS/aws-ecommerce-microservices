@@ -86,7 +86,7 @@ resource "aws_lambda_function" "backend_lambda" {
   handler          = "lambda_function.lambda_handler"
   runtime          = "python3.12" # <--- Tu actualización de seguridad
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-  reserved_concurrent_executions = 5
+ 
   
   environment {
     variables = {
