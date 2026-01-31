@@ -84,4 +84,26 @@ Este proyecto se despliega automáticamente, pero para replicarlo necesitas:
 git clone [https://github.com/JMCLABAS/aws-ecommerce-microservices.git](https://github.com/JMCLABAS/aws-ecommerce-microservices.git)
 ```
 
-**1º) Clonar el repositorio:**
+**2º) Configurar Secretos en GitHub:** Ir a `Settings > Secrets and variables > Actions` y añadir:
+* `AWS_ACCESS_KEY_ID`
+* `AWS_SECRET_ACCESS_KEY`
+
+**3º)Desplegar:** Simplemente haz un push a la rama `main`:
+```bash
+git push origin main
+```
+GitHub Actions ejecutará terraform `init`, `plan` y `apply` automáticamente.
+
+---
+## 📲 Prueba la Aplicación
+👉 **[Enlace a la Tienda Serverless](http://mi-web-ecommerce-portfolio-jmclabas.s3-website-eu-west-1.amazonaws.com)**
+
+---
+## 👨‍💻 Autor y Contacto
+
+Desarrollado por **Jose María Clavijo Basáñez.**
+
+Si tienes interés en el código, la arquitectura o quieres colaborar, contáctame en:
+
+* **📧 Email: pclavijobasanez@gmail.com**
+* **💼 LinkedIn: www.linkedin.com/in/jose-maría-clavijo-basáñez**
