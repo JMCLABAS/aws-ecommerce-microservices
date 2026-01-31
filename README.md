@@ -67,10 +67,25 @@ Gestión del estado de la infraestructura en un entorno colaborativo automatizad
 4.  Lambda escribe datos en **DynamoDB**.
 5.  Respuesta `200 OK` vuelve al usuario.
 
-| <img src="URL_DE_TU_CAPTURA_WEB" width="250" alt="Web Tienda" /> | <img src="URL_DE_TU_CAPTURA_DYNAMO" width="250" alt="DynamoDB Item" /> | <img src="URL_DE_TU_CAPTURA_GITHUBACTIONS" width="250" alt="CI/CD Verde" /> |
-| :---: | :---: | :---: |
-| **Frontend (S3)** | **Base de Datos (DynamoDB)** | **Pipeline (GitHub Actions)** |
+<div align="center">
 
+  <h3>1. Experiencia de Usuario (Frontend en S3)</h3>
+  <img src="https://github.com/user-attachments/assets/310c84bb-ba0e-44b5-967e-674ead01b3a7" width="700" alt="Web Tienda" />
+  <p><em>Integración exitosa entre JavaScript y API Serverless con respuesta visual inmediata.</em></p>
+
+  <br><br>
+
+  <h3>2. Persistencia de Datos (DynamoDB)</h3>
+  <img src="https://github.com/user-attachments/assets/e032f45d-0f28-4502-a5e2-2312a41ed4b3" width="700" alt="DynamoDB Item" />
+  <p><em>Registro de pedidos en tiempo real con IDs únicos y trazabilidad completa.</em></p>
+
+  <br><br>
+
+  <h3>3. Despliegue Automatizado (GitHub Actions)</h3>
+  <img src="https://github.com/user-attachments/assets/d9221a13-79a1-4a65-be2c-f2b049530bb7" width="700" alt="CI/CD Verde" />
+  <p><em>Pipeline de CI/CD ejecutando Terraform Plan & Apply sin intervención manual.</em></p>
+
+</div>
 
 
 ---
@@ -81,7 +96,7 @@ Este proyecto se despliega automáticamente, pero para replicarlo necesitas:
 
 **1º) Clonar el repositorio:**
 ```bash
-git clone [https://github.com/JMCLABAS/aws-ecommerce-microservices.git](https://github.com/JMCLABAS/aws-ecommerce-microservices.git)
+git clone https://github.com/JMCLABAS/aws-ecommerce-microservices.git
 ```
 
 **2º) Configurar Secretos en GitHub:** Ir a `Settings > Secrets and variables > Actions` y añadir:
