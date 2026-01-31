@@ -81,4 +81,7 @@ Este proyecto se despliega automáticamente, pero para replicarlo necesitas:
 
 **1º) Clonar el repositorio:**
 ```bash
-git clone [https://github.com/tu-usuario/aws-ecommerce-microservices.git](https://github.com/tu-usuario/aws-ecommerce-microservices.git)
+git clone [https://github.com/JMCLABAS/aws-ecommerce-microservices.git](https://github.com/JMCLABAS/aws-ecommerce-microservices.git)
+```
+
+**1º) Clonar el repositorio:**
