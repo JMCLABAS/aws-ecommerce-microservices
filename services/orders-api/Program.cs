@@ -2,27 +2,31 @@ using OrdersApi.Controllers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. Configuración de Servicios (Dependency Injection) ---
+// --- Configuración del Contenedor de Inversión de Control (IoC) ---
 
-// Añadimos soporte para Controladores
+// Registro de servicios del framework necesarios para la arquitectura basada en Controladores.
+// Esto habilita la inyección de dependencias en los constructores de los Controllers.
 builder.Services.AddControllers();
 
-// Añadimos Swagger/OpenAPI (Estilo .NET 8)
+// Integración de herramientas de descubrimiento de endpoints y generación de especificación OpenAPI.
+// Esencial para garantizar que el contrato de la API sea visible y consumible por servicios externos.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// --- 2. Configuración del Pipeline HTTP ---
+// --- Definición del Pipeline de Middleware de Procesamiento de Peticiones ---
 
-// Configuramos Swagger para poder probar la API visualmente
-// (Permitimos que se vea incluso fuera de entorno 'Development' para que lo veas en Docker)
+// Habilitación del middleware de documentación y la interfaz Swagger UI.
+// Se configura de forma agnóstica al entorno (Environment-Agnostic) para permitir 
+// la introspección y validación de contratos directamente sobre el contenedor Docker desplegado.
 app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseAuthorization();
 
-// Mapeamos los controladores
+// Mapeo de rutas de los controladores al pipeline de ejecución.
+// Asocia los endpoints definidos en los Controllers con las peticiones HTTP entrantes.
 app.MapControllers();
 
 app.Run();

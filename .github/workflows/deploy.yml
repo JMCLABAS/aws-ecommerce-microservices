@@ -6,7 +6,9 @@ on:
       - main
 
 permissions:
-  id-token: write # Necesario para conectarse a AWS de forma segura
+  # Permiso OIDC: Necesario para solicitar el token JWT al proveedor de identidad.
+  # Habilita la autenticación "passwordless" con AWS siguiendo las mejores prácticas de seguridad (Security Hardening).
+  id-token: write 
   contents: read
 
 jobs:
@@ -21,34 +23,41 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Debug Files (¿Donde esta main.tf?)
+      # Diagnóstico del entorno de ejecución (Runner) para verificar la estructura del workspace
+      # y la disponibilidad de los artefactos antes de iniciar la cadena de herramientas IaC.
+      - name: Debug Workspace
         run: |
-          echo "La carpeta actual es:"
+          echo "Directorio de trabajo actual:"
           pwd
-          echo "Los archivos aqui son:"
+          echo "Listado de archivos:"
           ls -la
-
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          # --- ¡IMPORTANTE! ---
-          # Asegúrate de que este ARN coincide con el que configuraste al principio
-          # Si no lo recuerdas, búscalo en AWS IAM -> Roles -> github-actions-role
+          # Implementación de federación de identidad vía GitHub OIDC.
+          # Elimina la dependencia de credenciales estáticas de larga duración (Access Keys) en los secretos,
+          # aplicando el principio de mínimo privilegio mediante credenciales efímeras (Temporary Security Credentials).
           role-to-assume: arn:aws:iam::380058194204:role/github-actions-role 
           aws-region: eu-west-1
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      # Inicialización del backend remoto (S3) y descarga de los plugins del proveedor necesarios.
       - name: Terraform Init
         run: terraform init
 
+      # Análisis estático de los archivos de configuración para asegurar la corrección sintáctica y coherencia interna.
       - name: Terraform Validate
         run: terraform validate
 
+      # Generación determinista del plan de ejecución persistido en 'tfplan'.
+      # Garantiza la integridad de la ejecución (Execution Integrity) asegurando que se aplicará exactamente lo previsualizado.
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
+      # Aprovisionamiento de la infraestructura basado estrictamente en el plan validado.
+      # El flag auto-approve es necesario para flujos de Despliegue Continuo (CD) totalmente automatizados.
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan

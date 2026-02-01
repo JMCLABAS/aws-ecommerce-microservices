@@ -10,9 +10,12 @@ terraform {
     }
   }
   
+  # Configuración del Backend remoto para la persistencia del Estado (Terraform State).
+  # S3 garantiza la durabilidad del estado y permite la colaboración en equipo,
+  # mientras que DynamoDB (si se configurara) gestionaría el bloqueo para evitar condiciones de carrera.
   backend "s3" {
     bucket = "terraform-state-ecommerce-pepe" 
-    key    = "global/s3/terraform.tfstate"    
+    key    = "global/s3/terraform.tfstate"     
     region = "eu-west-1"
   }
 }
@@ -21,10 +24,15 @@ provider "aws" {
   region = "eu-west-1"
 }
 
-# 1. BASE DE DATOS
+# -----------------------------------------------------------
+# 1. CAPA DE DATOS (Persistencia NoSQL)
+# -----------------------------------------------------------
 resource "aws_dynamodb_table" "inventory_table" {
   name           = "ecommerce-inventory-prod"
-  billing_mode   = "PAY_PER_REQUEST"
+  
+  # Se utiliza el modelo 'On-Demand' para optimizar costes (OpEx) eliminando
+  # la necesidad de aprovisionar capacidad de lectura/escritura (RCU/WCU) ociosa.
+  billing_mode   = "PAY_PER_REQUEST" 
   hash_key       = "ProductId"
 
   attribute {
@@ -34,19 +42,26 @@ resource "aws_dynamodb_table" "inventory_table" {
 
   tags = {
     Environment = "Production"
+    Project     = "ServerlessShop"
   }
 }
 
-# 2. BACKEND SERVERLESS (Lambda)
+# -----------------------------------------------------------
+# 2. CAPA DE LÓGICA DE NEGOCIO (Compute / Serverless)
+# -----------------------------------------------------------
+
+# Generación del artefacto de despliegue mediante compresión en tiempo de ejecución.
 data "archive_file" "lambda_zip" {
   type        = "zip"
   source_file = "lambda_function.py"
   output_path = "lambda_function.zip"
 }
 
-# --- AQUÍ ESTÁ EL ARREGLO DEL ERROR (Renombramos a _v3) ---
+# Definición de Roles IAM (Identity and Access Management).
+# Permite a la función Lambda asumir credenciales temporales de seguridad
+# para interactuar con otros servicios de AWS.
 resource "aws_iam_role" "lambda_role" {
-  name = "ecommerce_lambda_role_final_v3" # <--- Fix del error 409
+  name = "ecommerce_lambda_role_final_v3"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -58,8 +73,11 @@ resource "aws_iam_role" "lambda_role" {
   })
 }
 
+# Implementación del Principio de Mínimo Privilegio (PoLP).
+# Se otorgan permisos granulares explícitos (PutItem, Scan) únicamente
+# sobre la tabla de inventario, restringiendo el radio de impacto ante posibles brechas.
 resource "aws_iam_role_policy" "lambda_policy" {
-  name = "ecommerce_lambda_policy_final_v3" # <--- Fix del error 409
+  name = "ecommerce_lambda_policy_final_v3"
   role = aws_iam_role.lambda_role.id
 
   policy = jsonencode({
@@ -71,6 +89,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
         Resource = aws_dynamodb_table.inventory_table.arn
       },
       {
+        # Permisos necesarios para la observabilidad y trazabilidad en CloudWatch Logs.
         Effect = "Allow",
         Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
         Resource = "arn:aws:logs:*:*:*" 
@@ -79,15 +98,17 @@ resource "aws_iam_role_policy" "lambda_policy" {
   })
 }
 
+# Definición del recurso computacional.
+# Se inyectan las variables de entorno necesarias para desacoplar la configuración
+# del código fuente, siguiendo la metodología '12-Factor App'.
 resource "aws_lambda_function" "backend_lambda" {
   filename         = "lambda_function.zip"
   function_name    = "ecommerce-backend-function"
   role             = aws_iam_role.lambda_role.arn
   handler          = "lambda_function.lambda_handler"
-  runtime          = "python3.12" # <--- Tu actualización de seguridad
+  runtime          = "python3.12" # Runtime actualizado para soporte a largo plazo (LTS)
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
  
-  
   environment {
     variables = {
       TABLE_NAME = aws_dynamodb_table.inventory_table.name
@@ -95,20 +116,27 @@ resource "aws_lambda_function" "backend_lambda" {
   }
 }
 
+# Exposición pública mediante Function URLs.
+# Simplifica la arquitectura al eliminar la sobrecarga de gestión de un API Gateway completo,
+# reduciendo la latencia y los costes operativos para este microservicio.
 resource "aws_lambda_function_url" "lambda_url" {
   function_name      = aws_lambda_function.backend_lambda.function_name
   authorization_type = "NONE"
   
+  # Configuración de Cross-Origin Resource Sharing (CORS).
+  # Habilita la comunicación segura entre el Frontend (S3) y el Backend (Lambda)
+  # permitiendo verbos HTTP y cabeceras específicas.
   cors {
     allow_credentials = false
     allow_origins     = ["*"]
-    allow_methods     = ["*"]                
+    allow_methods     = ["*"]                 
     allow_headers     = ["date", "keep-alive", "content-type"]
     expose_headers    = ["keep-alive", "date"]
     max_age           = 86400
   }
 }
 
+# Política basada en recursos para permitir la invocación pública de la URL de la función.
 resource "aws_lambda_permission" "allow_public_access" {
   statement_id           = "AllowPublicAccess_FinalClean_v6" 
   action                 = "lambda:InvokeFunctionUrl"
@@ -117,16 +145,23 @@ resource "aws_lambda_permission" "allow_public_access" {
   function_url_auth_type = "NONE"
 }
 
-# 3. FRONTEND (S3 Website con DISEÑO DE TIENDA)
+# -----------------------------------------------------------
+# 3. CAPA DE PRESENTACIÓN (Frontend Estático)
+# -----------------------------------------------------------
 resource "aws_s3_bucket" "web_bucket" {
   bucket = "mi-web-ecommerce-portfolio-jmclabas"
 }
 
+# Configuración del bucket para alojamiento web estático.
+# Transforma el almacenamiento de objetos en un servidor web básico.
 resource "aws_s3_bucket_website_configuration" "web_config" {
   bucket = aws_s3_bucket.web_bucket.id
   index_document { suffix = "index.html" }
 }
 
+# Gestión de acceso público.
+# Se deshabilitan los bloqueos por defecto para permitir que el bucket sirva
+# contenido web públicamente a través de Internet.
 resource "aws_s3_bucket_public_access_block" "web_public_access" {
   bucket = aws_s3_bucket.web_bucket.id
   block_public_acls       = false
@@ -135,6 +170,9 @@ resource "aws_s3_bucket_public_access_block" "web_public_access" {
   restrict_public_buckets = false
 }
 
+# Política de bucket (Bucket Policy).
+# Define permisos de solo lectura (s3:GetObject) para cualquier usuario anónimo,
+# permitiendo la visualización del sitio web.
 resource "aws_s3_bucket_policy" "web_policy" {
   bucket = aws_s3_bucket.web_bucket.id
   depends_on = [aws_s3_bucket_public_access_block.web_public_access]
@@ -150,7 +188,8 @@ resource "aws_s3_bucket_policy" "web_policy" {
   })
 }
 
-# HTML NUEVO: Catálogo de Productos
+# Despliegue del artefacto Frontend (Single Page Application).
+# Se inyecta la URL del backend dinámicamente utilizando interpolación de Terraform.
 resource "aws_s3_object" "index_file" {
   bucket       = aws_s3_bucket.web_bucket.id
   key          = "index.html"
@@ -200,7 +239,7 @@ resource "aws_s3_object" "index_file" {
             <div class="card-body">
                 <h3>MacBook Pro Dev</h3>
                 <p>Perfecto para compilar tu código Terraform.</p>
-                <span class="price">1,299€</span>
+                <span class="price">1.299 €</span>
                 <button onclick="comprar('MacBook Pro Dev', 1299)">Comprar Ahora</button>
             </div>
         </div>
@@ -209,7 +248,7 @@ resource "aws_s3_object" "index_file" {
             <div class="card-body">
                 <h3>Sony WH-1000XM5</h3>
                 <p>Cancelación de ruido para concentrarte.</p>
-                <span class="price">349€</span>
+                <span class="price">349 €</span>
                 <button onclick="comprar('Auriculares Sony', 349)">Comprar Ahora</button>
             </div>
         </div>
@@ -218,7 +257,7 @@ resource "aws_s3_object" "index_file" {
             <div class="card-body">
                 <h3>Auriculares Cloud</h3>
                 <p>Escucha tus logs con claridad cristalina.</p>
-                <span class="price">89€</span>
+                <span class="price">89 €</span>
                 <button onclick="comprar('Auriculares Cloud', 89)">Comprar Ahora</button>
             </div>
         </div>
@@ -239,6 +278,7 @@ resource "aws_s3_object" "index_file" {
             toast.classList.add("show");
 
             try {
+                // Invocación asíncrona al Backend Serverless
                 const response = await fetch("${aws_lambda_function_url.lambda_url.function_url}", {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -270,5 +310,6 @@ EOF
 }
 
 output "website_url" {
-  value = aws_s3_bucket_website_configuration.web_config.website_endpoint
+  description = "Endpoint público para acceder a la aplicación web desplegada"
+  value       = aws_s3_bucket_website_configuration.web_config.website_endpoint
 }
